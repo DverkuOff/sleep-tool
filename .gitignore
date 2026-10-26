@@ -7,3 +7,7 @@ node_modules/
 # HyperFrames: рендеры и служебные снимки
 media/anim/renders/
 media/anim/.hyperframes/
+
+# Ассеты macOS для видео: выгружает tools/export_mac_assets.py, в репозиторий не кладём
+media/anim/assets/mac/
+media/anim/assets/fonts/

@@ -111,7 +111,10 @@ sudo pmset -a disablesleep 0
 
 Ролик собран в [HyperFrames](https://hyperframes.heygen.com): HTML и GSAP, которые рендерятся в mp4 кадр за кадром. Исходник лежит в `media/anim`, готовый файл в `media/sleep-tool.mp4`.
 
+Курсор, значки строки меню (SF Symbols) и шрифты SF настоящие, из macOS. В репозиторий они не входят: перед рендером их выгружает из системы `tools/export_mac_assets.py`.
+
 ```bash
+.venv/bin/python media/anim/tools/export_mac_assets.py   # курсор, SF Symbols и шрифты SF из macOS
 cd media/anim
 npx hyperframes@0.8.192 preview      # открыть в браузере и поправить
 npx hyperframes@0.8.192 render --quality delivery --output ../sleep-tool.mp4

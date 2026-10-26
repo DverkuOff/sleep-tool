@@ -1,0 +1,57 @@
+<!doctype html>
+<html
+  lang="ru"
+  data-composition-variables='[
+    {"id":"color-ground","type":"color","label":"Фон","default":"#0D0E13"},
+    {"id":"color-ink","type":"color","label":"Текст","default":"#F5F5F7"},
+    {"id":"color-accent","type":"color","label":"Акцент","default":"#A796FF"},
+    {"id":"color-select","type":"color","label":"Выделение в меню","default":"#2F6BFF"},
+    {"id":"font-display","type":"string","label":"Шрифт","default":"Inter"}
+  ]'
+>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: #0d0e13;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="11"
+      data-width="1920"
+      data-height="1080"
+    >
+      <div
+        id="demo"
+        data-composition-id="demo"
+        data-composition-src="compositions/demo.html"
+        data-start="0"
+        data-duration="11"
+        data-track-index="1"
+        data-track-kind="graphics"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+    </div>
+    <script>
+      window.__timelines["main"] = gsap.timeline({ paused: true });
+    </script>
+  </body>
+</html>

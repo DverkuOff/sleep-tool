@@ -1,0 +1,535 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background: var(--color-ground, #0d0e13);
+      color: var(--color-ink, #f5f5f7);
+      font-family: var(--font-display, "Inter"), sans-serif;
+    }
+
+    /* Фон: сплошной цвет и два локальных свечения (линейный градиент на тёмном полосит в H.264) */
+    .glow {
+      position: absolute;
+      border-radius: 50%;
+      pointer-events: none;
+    }
+    #glow-a {
+      left: 860px;
+      top: -420px;
+      width: 1400px;
+      height: 1400px;
+      background: radial-gradient(closest-side, rgba(124, 104, 255, 0.34), rgba(124, 104, 255, 0));
+      opacity: 0.55;
+    }
+    #glow-b {
+      left: -420px;
+      top: 560px;
+      width: 1100px;
+      height: 1100px;
+      background: radial-gradient(closest-side, rgba(31, 181, 163, 0.16), rgba(31, 181, 163, 0));
+    }
+
+    /* Строка меню macOS, масштаб ×2 */
+    #bar {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 1920px;
+      height: 72px;
+      background: rgba(34, 35, 44, 0.78);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 28px;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.92);
+    }
+    #bar-apps {
+      position: absolute;
+      left: 48px;
+      top: 0;
+      height: 72px;
+      display: flex;
+      align-items: center;
+      gap: 38px;
+    }
+    #bar-apps b {
+      font-weight: 700;
+    }
+    #pill-hl {
+      position: absolute;
+      left: 1356px;
+      top: 10px;
+      width: 64px;
+      height: 52px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.2);
+      opacity: 0;
+    }
+    #bar-pill {
+      position: absolute;
+      left: 1369px;
+      top: 17px;
+      width: 38px;
+      height: 38px;
+      color: #ffffff;
+    }
+    #bar-wifi {
+      position: absolute;
+      left: 1448px;
+      top: 22px;
+      width: 38px;
+      height: 28px;
+    }
+    #bar-batt-text {
+      position: absolute;
+      left: 1500px;
+      top: 0;
+      height: 72px;
+      line-height: 72px;
+    }
+    #bar-batt {
+      position: absolute;
+      left: 1566px;
+      top: 24px;
+      width: 46px;
+      height: 24px;
+      border: 2px solid rgba(255, 255, 255, 0.55);
+      border-radius: 7px;
+      padding: 3px;
+    }
+    #bar-batt i {
+      display: block;
+      width: 73%;
+      height: 100%;
+      border-radius: 3px;
+      background: #ffffff;
+    }
+    #bar-batt::after {
+      content: "";
+      position: absolute;
+      right: -7px;
+      top: 6px;
+      width: 3px;
+      height: 8px;
+      border-radius: 0 2px 2px 0;
+      background: rgba(255, 255, 255, 0.55);
+    }
+    #bar-clock {
+      position: absolute;
+      right: 40px;
+      top: 0;
+      height: 72px;
+      line-height: 72px;
+    }
+
+    /* Выпадающее меню и подменю */
+    .menu {
+      position: absolute;
+      padding: 10px 0;
+      border-radius: 18px;
+      background: rgba(44, 44, 54, 0.95);
+      border: 1px solid rgba(255, 255, 255, 0.13);
+      box-shadow: 0 30px 70px rgba(0, 0, 0, 0.55);
+      font-size: 28px;
+      font-weight: 400;
+      opacity: 0;
+    }
+    #menu {
+      left: 1358px;
+      top: 80px;
+      width: 470px;
+    }
+    #submenu {
+      left: 1050px;
+      top: 198px;
+      width: 304px;
+    }
+    .row {
+      position: relative;
+      height: 50px;
+      line-height: 50px;
+      padding-left: 52px;
+      padding-right: 22px;
+      white-space: nowrap;
+    }
+    #submenu .row {
+      padding-left: 26px;
+    }
+    .row .hl {
+      position: absolute;
+      left: 8px;
+      right: 8px;
+      top: 0;
+      bottom: 0;
+      border-radius: 10px;
+      background: var(--color-select, #2f6bff);
+      opacity: 0;
+    }
+    .row .txt {
+      position: relative;
+    }
+    .row .swap {
+      display: inline-grid;
+    }
+    .row .swap > span {
+      grid-area: 1 / 1;
+    }
+    .row .alt {
+      opacity: 0;
+    }
+    .row.dim {
+      color: rgba(255, 255, 255, 0.42);
+    }
+    .row svg {
+      position: absolute;
+      top: 13px;
+      width: 24px;
+      height: 24px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2.4;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .row .check {
+      left: 18px;
+    }
+    .row .chev {
+      right: 18px;
+    }
+    .sep {
+      height: 18px;
+      position: relative;
+    }
+    .sep::after {
+      content: "";
+      position: absolute;
+      left: 22px;
+      right: 22px;
+      top: 8px;
+      height: 1px;
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    /* Курсор */
+    #cursor {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 40px;
+      height: 58px;
+      opacity: 0;
+    }
+    #cursor-svg {
+      width: 40px;
+      height: 58px;
+      margin-left: -3px;
+      margin-top: -3px;
+      filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.45));
+    }
+
+    /* Текстовый блок */
+    #copy {
+      position: absolute;
+      left: 150px;
+      top: 452px;
+      width: 1300px;
+    }
+    #eyebrow {
+      font-size: 30px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--color-accent, #a796ff);
+      opacity: 0;
+    }
+    #hero {
+      margin-top: 18px;
+      height: 136px;
+      display: flex;
+      align-items: center;
+      gap: 36px;
+      font-size: 112px;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+      white-space: nowrap;
+    }
+    #hero-pill {
+      width: 112px;
+      height: 112px;
+      flex: none;
+      opacity: 0;
+    }
+    #hero-pill-svg {
+      width: 112px;
+      height: 112px;
+      color: var(--color-ink, #f5f5f7);
+    }
+    #hero-words {
+      display: flex;
+      gap: 0.26em;
+      align-items: center;
+    }
+    #w-son,
+    #w-swap {
+      opacity: 0;
+    }
+    #w-swap {
+      display: inline-grid;
+    }
+    #w-swap > span {
+      grid-area: 1 / 1;
+    }
+    #w-on {
+      color: var(--color-accent, #a796ff);
+      opacity: 0;
+    }
+    #chip {
+      margin-left: 10px;
+      padding: 0 30px;
+      height: 76px;
+      line-height: 72px;
+      border-radius: 38px;
+      border: 2px solid var(--color-accent, #a796ff);
+      color: var(--color-accent, #a796ff);
+      font-size: 44px;
+      font-weight: 600;
+      letter-spacing: 0;
+      opacity: 0;
+    }
+    #mono {
+      margin-top: 40px;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 40px;
+      line-height: 52px;
+      height: 52px;
+      color: rgba(245, 245, 247, 0.6);
+      white-space: nowrap;
+      opacity: 0;
+    }
+    #mono .prompt {
+      color: rgba(167, 150, 255, 0.7);
+    }
+    #roll {
+      display: inline-block;
+      height: 52px;
+      overflow: hidden;
+      vertical-align: top;
+    }
+    #roll-col {
+      display: block;
+    }
+    #roll-col span {
+      display: block;
+      height: 52px;
+    }
+    #roll-col .one {
+      color: var(--color-accent, #a796ff);
+      font-weight: 600;
+    }
+    #caps {
+      position: relative;
+      margin-top: 40px;
+      height: 50px;
+      font-size: 38px;
+      font-weight: 500;
+      color: rgba(245, 245, 247, 0.74);
+      white-space: nowrap;
+    }
+    #caps span {
+      position: absolute;
+      left: 0;
+      top: 0;
+      opacity: 0;
+    }
+  </style>
+
+  <div id="root" data-composition-id="demo" data-width="1920" data-height="1080">
+    <div id="glow-a" class="glow" data-layout-ignore></div>
+    <div id="glow-b" class="glow" data-layout-ignore></div>
+
+    <!-- Текст слева -->
+    <div id="copy">
+      <div id="eyebrow">Sleep Tool</div>
+      <div id="hero" data-layout-allow-overlap>
+        <div id="hero-pill">
+          <svg id="hero-pill-svg" viewBox="0 0 20 20" aria-hidden="true">
+            <defs>
+              <clipPath id="hero-pill-clip"><circle cx="10" cy="10" r="8.6" /></clipPath>
+            </defs>
+            <g clip-path="url(#hero-pill-clip)" fill="currentColor">
+              <rect x="0" y="0" width="20" height="9.1" />
+              <rect x="0" y="10.9" width="20" height="9.1" />
+            </g>
+          </svg>
+        </div>
+        <div id="hero-words">
+          <span id="w-son">Сон</span>
+          <span id="w-swap"><span id="w-off">разрешён</span><span id="w-on">запрещён</span></span>
+        </div>
+        <div id="chip">до 17:07</div>
+      </div>
+      <div id="mono">
+        <span class="prompt">$</span> sudo pmset -a disablesleep
+        <span id="roll" data-layout-allow-overflow><span id="roll-col"><span>0</span><span class="one">1</span></span></span>
+      </div>
+      <div id="caps" data-layout-allow-overlap>
+        <span id="cap-a">Mac не уснёт, даже если закрыть крышку</span>
+        <span id="cap-b">Через час Mac снова сможет уснуть</span>
+      </div>
+    </div>
+
+    <!-- Строка меню -->
+    <div id="bar">
+      <div id="bar-apps">
+        <b>Finder</b><span>Файл</span><span>Правка</span><span>Вид</span><span>Переход</span
+        ><span>Окно</span><span>Справка</span>
+      </div>
+      <div id="pill-hl"></div>
+      <svg id="bar-pill" viewBox="0 0 20 20" aria-hidden="true">
+        <defs>
+          <clipPath id="bar-pill-clip"><circle cx="10" cy="10" r="7.5" /></clipPath>
+        </defs>
+        <g clip-path="url(#bar-pill-clip)" fill="currentColor">
+          <rect x="0" y="0" width="20" height="9" />
+          <rect x="0" y="11" width="20" height="9" />
+        </g>
+      </svg>
+      <svg id="bar-wifi" viewBox="0 0 24 18" aria-hidden="true" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round">
+        <path d="M2.5 6.2a13.6 13.6 0 0 1 19 0" />
+        <path d="M6 9.8a8.6 8.6 0 0 1 12 0" />
+        <path d="M9.4 13.3a3.8 3.8 0 0 1 5.2 0" />
+        <circle cx="12" cy="16.2" r="0.9" fill="#ffffff" />
+      </svg>
+      <div id="bar-batt-text">73%</div>
+      <div id="bar-batt"><i></i></div>
+      <div id="bar-clock">Пн 26 окт.&nbsp;&nbsp;16:07</div>
+    </div>
+
+    <!-- Меню Sleep Tool -->
+    <div id="menu" class="menu">
+      <div class="row dim">
+        <span class="txt swap"><span id="st-off">Сон разрешён</span><span id="st-on" class="alt">Сон запрещён</span></span>
+      </div>
+      <div class="sep"></div>
+      <div class="row">
+        <div id="hl-toggle" class="hl"></div>
+        <span class="txt swap"><span id="tg-off">Запретить сон</span><span id="tg-on" class="alt">Разрешить сон</span></span>
+      </div>
+      <div class="row">
+        <div id="hl-timed" class="hl"></div>
+        <span class="txt">Запретить на время</span>
+        <svg class="chev" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" /></svg>
+      </div>
+      <div class="sep"></div>
+      <div class="row">
+        <svg class="check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7" /></svg>
+        <span class="txt">Запускать при входе</span>
+      </div>
+      <div class="row">
+        <svg class="check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7" /></svg>
+        <span class="txt">Не спрашивать пароль</span>
+      </div>
+      <div class="sep"></div>
+      <div class="row"><span class="txt">Выход</span></div>
+    </div>
+
+    <div id="submenu" class="menu">
+      <div class="row"><span class="txt">15 минут</span></div>
+      <div class="row"><span class="txt">30 минут</span></div>
+      <div class="row">
+        <div id="hl-hour" class="hl"></div>
+        <span class="txt">1 час</span>
+      </div>
+      <div class="row"><span class="txt">2 часа</span></div>
+      <div class="row"><span class="txt">5 часов</span></div>
+    </div>
+
+    <!-- Курсор: кончик стрелки в точке (x, y) -->
+    <div id="cursor">
+      <svg id="cursor-svg" viewBox="0 0 28 40" aria-hidden="true">
+        <path
+          d="M3 3 L3 31 L9.6 24.8 L14.2 35.4 L18.6 33.5 L14 23 L23 23 Z"
+          fill="#111111"
+          stroke="#ffffff"
+          stroke-width="2"
+          stroke-linejoin="round"
+        />
+      </svg>
+    </div>
+  </div>
+
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    const IN = { opacity: 0, filter: "blur(8px)" };
+    const LANDED = { opacity: 1, filter: "blur(0px)" };
+
+    // Нажатие кнопки мыши: стрелка чуть сжимается и возвращается
+    function click(t) {
+      tl.fromTo("#cursor-svg", { scale: 1 }, { scale: 0.86, duration: 0.06, ease: "power2.out", transformOrigin: "0% 0%", immediateRender: false }, t);
+      tl.to("#cursor-svg", { scale: 1, duration: 0.12, ease: "power2.out" }, t + 0.06);
+    }
+
+    // 0–1.2 с: заголовок и исходное состояние «Сон разрешён»
+    tl.fromTo("#eyebrow", IN, { ...LANDED, duration: 0.2, ease: "power4.out" }, 0.25);
+    tl.fromTo("#hero-pill", { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.7, ease: "expo.out" }, 0.35);
+    tl.fromTo(["#w-son", "#w-swap"], { opacity: 0, filter: "blur(6px)" }, { ...LANDED, duration: 0.13, ease: "power2.out", stagger: 0.067 }, 0.5);
+    tl.fromTo("#mono", IN, { ...LANDED, duration: 0.2, ease: "power4.out" }, 0.9);
+
+    // 1.35–2.3 с: курсор к таблетке в строке меню
+    tl.fromTo("#cursor", { opacity: 0, x: 1640, y: 860 }, { opacity: 1, duration: 0.25, ease: "power2.out" }, 1.35);
+    tl.to("#cursor", { x: 1394, y: 42, duration: 0.85, ease: "power3.inOut" }, 1.45);
+
+    // 2.35 с: клик, меню открывается
+    click(2.35);
+    tl.set("#pill-hl", { opacity: 1 }, 2.38);
+    tl.fromTo("#menu", { opacity: 0, y: -6 }, { opacity: 1, y: 0, duration: 0.14, ease: "expo.out" }, 2.4);
+
+    // 2.75–3.8 с: «Запретить сон», клик, пункт мигает, меню закрывается
+    tl.to("#cursor", { x: 1530, y: 183, duration: 0.45, ease: "power2.inOut" }, 2.75);
+    tl.set("#hl-toggle", { opacity: 1 }, 3.08);
+    click(3.45);
+    tl.set("#hl-toggle", { opacity: 0 }, 3.5);
+    tl.set("#hl-toggle", { opacity: 1 }, 3.57);
+    tl.to("#menu", { opacity: 0, duration: 0.14, ease: "power2.in" }, 3.64);
+    tl.set("#pill-hl", { opacity: 0 }, 3.78);
+    tl.set("#hl-toggle", { opacity: 0 }, 3.8);
+
+    // 3.8 с: сон запрещён — таблетка поворачивается, слово и цифра меняются
+    tl.fromTo("#bar-pill", { rotation: 0 }, { rotation: 90, duration: 0.45, ease: "back.out(1.8)" }, 3.8);
+    tl.fromTo("#hero-pill-svg", { rotation: 0 }, { rotation: 90, duration: 0.6, ease: "back.out(1.5)" }, 3.8);
+    tl.to("#w-off", { opacity: 0, filter: "blur(8px)", duration: 0.13, ease: "power2.in" }, 3.8);
+    tl.fromTo("#w-on", IN, { ...LANDED, duration: 0.16, ease: "power3.out" }, 3.9);
+    tl.fromTo("#roll-col", { yPercent: 0 }, { yPercent: -50, duration: 0.28, ease: "power3.out" }, 3.85);
+    tl.fromTo("#glow-a", { opacity: 0.55 }, { opacity: 1, duration: 0.5, ease: "power2.inOut" }, 3.8);
+    tl.fromTo("#cap-a", IN, { ...LANDED, duration: 0.2, ease: "power4.out" }, 4.35);
+
+    // 5–8 с: снова меню, «Запретить на время» → «1 час»
+    tl.set(["#st-off", "#tg-off"], { opacity: 0 }, 5.0);
+    tl.set(["#st-on", "#tg-on"], { opacity: 1 }, 5.0);
+    tl.to("#cursor", { x: 1394, y: 42, duration: 0.55, ease: "power3.inOut" }, 5.25);
+    click(5.85);
+    tl.set("#pill-hl", { opacity: 1 }, 5.88);
+    tl.fromTo("#menu", { opacity: 0, y: -6 }, { opacity: 1, y: 0, duration: 0.14, ease: "expo.out", immediateRender: false }, 5.9);
+    tl.to("#cursor", { x: 1560, y: 233, duration: 0.45, ease: "power2.inOut" }, 6.2);
+    tl.set("#hl-timed", { opacity: 1 }, 6.55);
+    tl.fromTo("#submenu", { opacity: 0 }, { opacity: 1, duration: 0.12, ease: "power2.out" }, 6.75);
+    tl.to("#cursor", { x: 1180, y: 333, duration: 0.55, ease: "power2.inOut" }, 6.95);
+    tl.set("#hl-hour", { opacity: 1 }, 7.38);
+    click(7.7);
+    tl.set("#hl-hour", { opacity: 0 }, 7.75);
+    tl.set("#hl-hour", { opacity: 1 }, 7.82);
+    tl.to(["#menu", "#submenu"], { opacity: 0, duration: 0.14, ease: "power2.in" }, 7.9);
+    tl.set("#pill-hl", { opacity: 0 }, 8.04);
+    tl.set(["#hl-timed", "#hl-hour"], { opacity: 0 }, 8.06);
+
+    // 8–11 с: таймер на час, финальная строка держится до конца
+    tl.fromTo("#chip", { opacity: 0, filter: "blur(8px)", x: -12 }, { opacity: 1, filter: "blur(0px)", x: 0, duration: 0.35, ease: "expo.out" }, 8.1);
+    tl.to("#cap-a", { opacity: 0, filter: "blur(8px)", duration: 0.15, ease: "power2.in" }, 8.05);
+    tl.fromTo("#cap-b", IN, { ...LANDED, duration: 0.2, ease: "power4.out" }, 8.2);
+    tl.to("#cursor", { opacity: 0, x: 1290, y: 470, duration: 0.45, ease: "power3.in" }, 8.6);
+
+    window.__timelines["demo"] = tl;
+  </script>
+</template>

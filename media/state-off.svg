@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="44" viewBox="0 0 64 44" role="img" aria-label="Сон разрешён">
+  <title>Сон разрешён</title>
+  <rect width="64" height="44" rx="10" fill="#22232C"/>
+  <defs><clipPath id="c"><circle cx="10" cy="10" r="7.5"/></clipPath></defs>
+  <g transform="translate(17 7) scale(1.5)" clip-path="url(#c)" fill="#FFFFFF"><rect x="0" y="0" width="20" height="9"/><rect x="0" y="11" width="20" height="9"/></g>
+</svg>

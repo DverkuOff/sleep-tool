@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+node_modules/
+
+# HyperFrames: рендеры и служебные снимки
+media/anim/renders/
+media/anim/.hyperframes/

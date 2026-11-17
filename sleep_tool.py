@@ -3,6 +3,7 @@
 
 import fcntl
 import getpass
+import json
 import logging
 import math
 import os
@@ -33,10 +34,12 @@ ICON_ON = str(HERE / "icons" / "on.pdf")
 ICON_OFF = str(HERE / "icons" / "off.pdf")
 
 PMSET = "/usr/bin/pmset"
+CAFFEINATE = "/usr/bin/caffeinate"
 SUDOERS_FILE = "/etc/sudoers.d/sleep-tool"
 LABEL = "com.chill.sleep-tool"
 AGENT_PLIST = Path.home() / "Library" / "LaunchAgents" / f"{LABEL}.plist"
 SUPPORT_DIR = Path.home() / "Library" / "Application Support" / "sleep-tool"
+SETTINGS_FILE = SUPPORT_DIR / "settings.json"
 LOG_FILE = Path.home() / "Library" / "Logs" / "sleep-tool.log"
 
 logging.basicConfig(filename=LOG_FILE, level=logging.INFO, format="%(asctime)s %(message)s")
@@ -86,6 +89,29 @@ def set_sleep_disabled(on: bool):
             return None
     action = "запретить" if on else "разрешить"
     return run_as_admin(" ".join(cmd), f"Sleep Tool хочет {action} сон Mac.")
+
+
+# --- caffeinate -di: экран не гаснет ------------------------------------
+
+def start_caffeinate():
+    # -d: экран не гаснет, -i: Mac не уходит в сон от бездействия.
+    # -w: caffeinate сам завершится, если Sleep Tool упадёт или закроется.
+    return subprocess.Popen([CAFFEINATE, "-d", "-i", "-w", str(os.getpid())],
+                            stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                            stderr=subprocess.DEVNULL)
+
+
+def load_settings() -> dict:
+    try:
+        return json.loads(SETTINGS_FILE.read_text())
+    except (OSError, ValueError):
+        return {}
+
+
+def save_settings(**changes):
+    data = load_settings() | changes
+    SUPPORT_DIR.mkdir(parents=True, exist_ok=True)
+    SETTINGS_FILE.write_text(json.dumps(data, indent=2))
 
 
 # --- правило sudoers (чтобы не спрашивать пароль) -----------------------
@@ -159,6 +185,7 @@ class SleepTool(NSObject):
         self.state = None   # True: сон запрещён
         self.until = None   # time.time(), когда закончится сессия на время
         self.busy = False
+        self.caff = None    # процесс caffeinate, пока включено «Не гасить экран»
         self.img_on = load_icon(ICON_ON)
         self.img_off = load_icon(ICON_OFF)
 
@@ -166,6 +193,8 @@ class SleepTool(NSObject):
         self.item.setAutosaveName_("SleepTool")
         self.item.button().setToolTip_("Sleep Tool")
         self.build_menu()
+        if load_settings().get("keep_display_on"):
+            self.set_display(True)  # галочка переживает перезапуск
         self.refresh()
 
         timer = NSTimer.timerWithTimeInterval_target_selector_userInfo_repeats_(
@@ -200,6 +229,7 @@ class SleepTool(NSObject):
         for title, secs in DURATIONS:
             self.add_item(timed, title, "timed:").setTag_(secs)
         self.add_item(menu, "Запретить на время").setSubmenu_(timed)
+        self.display_item = self.add_item(menu, "Не гасить экран", "display:")
 
         menu.addItem_(NSMenuItem.separatorItem())
         self.login_item = self.add_item(menu, "Запускать при входе", "login:")
@@ -212,6 +242,10 @@ class SleepTool(NSObject):
 
     @objc.python_method
     def refresh(self):
+        if self.caff and self.caff.poll() is not None:  # caffeinate убили снаружи
+            log.info("caffeinate exited with %s", self.caff.returncode)
+            self.caff = None
+            save_settings(keep_display_on=False)
         state = sleep_disabled()
         if not state:
             self.until = None  # сон разрешили (в том числе из терминала): сессия на время закончилась
@@ -233,6 +267,7 @@ class SleepTool(NSObject):
             status = "Сон разрешён"
         self.status_item.setTitle_(status)
         self.toggle_item.setTitle_("Разрешить сон" if self.state else "Запретить сон")
+        self.display_item.setState_(1 if self.caff else 0)
         self.login_item.setState_(1 if login_item_enabled() else 0)
         self.nopass_item.setState_(1 if os.path.exists(SUDOERS_FILE) else 0)
 
@@ -285,6 +320,27 @@ class SleepTool(NSObject):
         else:
             self.apply(True, until)
 
+    # caffeinate
+
+    @objc.python_method
+    def set_display(self, on):
+        if on and not self.caff:
+            try:
+                self.caff = start_caffeinate()
+            except OSError as e:
+                self.alert("Не получилось запустить caffeinate", str(e))
+                return
+        elif not on and self.caff:
+            self.caff.terminate()
+            self.caff.wait()
+            self.caff = None
+        log.info("keep display on: %s", on)
+        save_settings(keep_display_on=on)
+
+    def display_(self, _sender):
+        self.set_display(not self.caff)
+        self.update_menu()
+
     # Настройки
 
     def login_(self, _sender):
@@ -304,6 +360,8 @@ class SleepTool(NSObject):
         # Сессию на время заканчиваем, как Amphetamine. Бессрочный запрет оставляем как есть.
         if self.state and self.until and not self.busy:
             set_sleep_disabled(False)
+        if self.caff:
+            self.caff.terminate()  # галочку в настройках не трогаем: включится при следующем запуске
         NSApplication.sharedApplication().terminate_(None)
 
     @objc.python_method
